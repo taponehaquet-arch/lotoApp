@@ -1,30 +1,919 @@
-   <html>
-   <head>
-     <title>Loto Analyzer</title>
-     <script src="https://unpkg.com/react/umd/react.development.js"></script>
-     <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
-   </head>
-   <body>
-     <div id="app"></div>
-     <script type="text/babel">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loto Analyzer - 35 Hypothèses</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background-color: #f5f7fa;
+      color: #1a2332;
+      line-height: 1.6;
+    }
 
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
 
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #0066cc 0%, #003d7a 100%);
+      color: white;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 0;
+    }
 
-import { useState, useMemo, useRef } from "react";
+    .header .container {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
 
+    .header-left {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .header-title h1 {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+
+    .badge {
+      background: rgba(255,255,255,0.2);
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .last-draw-label {
+      font-size: 12px;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    }
+
+    .last-draw-date {
+      font-size: 12px;
+      font-family: monospace;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .balls-row {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      background: white;
+      border-bottom: 1px solid #d1d9e6;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex;
+      overflow-x: auto;
+    }
+
+    .nav-tabs .container {
+      display: flex;
+      flex: 1;
+      padding: 0;
+    }
+
+    .tab-button {
+      background: transparent;
+      border: none;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #5f6b7a;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+
+    .tab-button:hover {
+      color: #0066cc;
+    }
+
+    .tab-button.active {
+      color: #0066cc;
+      border-bottom-color: #0066cc;
+    }
+
+    /* Content Area */
+    .content {
+      padding: 24px 0 48px 0;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Card Styles */
+    .card {
+      background: white;
+      border: 1px solid #d1d9e6;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .card-title {
+      font-weight: 700;
+      margin-bottom: 16px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #5f6b7a;
+    }
+
+    /* Input/Select */
+    .input-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .input-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .input-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #5f6b7a;
+    }
+
+    .input-label.accent {
+      color: #ff6b00;
+    }
+
+    select, input[type="range"] {
+      padding: 8px;
+      border: 2px solid #d1d9e6;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      background: white;
+      color: #1a2332;
+      width: 64px;
+      cursor: pointer;
+    }
+
+    select:hover, select:focus {
+      border-color: #0066cc;
+      outline: none;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      max-width: 300px;
+      accent-color: #0066cc;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0066cc, #003d7a);
+      color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background: #d1d9e6;
+      color: #5f6b7a;
+    }
+
+    .btn-secondary:hover {
+      opacity: 0.8;
+    }
+
+    .btn-block {
+      width: 100%;
+      padding: 12px;
+    }
+
+    /* Ball Display */
+    .ball {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: bold;
+      background: #0066cc;
+      color: white;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      user-select: none;
+      font-size: 14px;
+      width: 36px;
+      height: 36px;
+    }
+
+    .ball.sm {
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+    }
+
+    .ball.lg {
+      width: 44px;
+      height: 44px;
+      font-size: 16px;
+    }
+
+    .ball.chance {
+      background: #ff6b00;
+    }
+
+    /* Score Display */
+    .score-card {
+      background: white;
+      border: 2px solid;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .score-number {
+      font-size: 60px;
+      font-weight: 900;
+      font-family: monospace;
+      margin-bottom: 8px;
+    }
+
+    .score-label {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #1a2332;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      border-radius: 9999px;
+      overflow: hidden;
+      background: #f5f7fa;
+      margin-bottom: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 1s ease;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: #5f6b7a;
+    }
+
+    /* Category Section */
+    .category {
+      background: white;
+      border: 1px solid #d1d9e6;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #f5f7fa;
+    }
+
+    .category-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #1a2332;
+    }
+
+    .category-score {
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .category-items {
+      border-top: 1px solid #d1d9e6;
+    }
+
+    .hypothesis {
+      display: flex;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid #d1d9e6;
+    }
+
+    .hypothesis:last-child {
+      border-bottom: none;
+    }
+
+    .hypothesis-icon {
+      font-size: 18px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .hypothesis-content {
+      flex: 1;
+    }
+
+    .hypothesis-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .hypothesis-id {
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 600;
+      background: #f5f7fa;
+      color: #5f6b7a;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .hypothesis-label {
+      font-weight: 600;
+      font-size: 14px;
+      color: #1a2332;
+    }
+
+    .hypothesis-rule {
+      font-size: 12px;
+      color: #5f6b7a;
+    }
+
+    .hypothesis-detail {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .detail-pass {
+      color: #00b894;
+    }
+
+    .detail-fail {
+      color: #d63031;
+    }
+
+    /* Grid Display */
+    .grid-item {
+      background: white;
+      border: 2px solid #d1d9e6;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .grid-numbers {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      flex: 1;
+    }
+
+    .grid-score {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* History */
+    .history-item {
+      background: white;
+      border: 1px solid #d1d9e6;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .history-date {
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #5f6b7a;
+      min-width: 80px;
+    }
+
+    .history-numbers {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .stat-box {
+      background: white;
+      border: 1px solid #d1d9e6;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .stat-title {
+      font-weight: 700;
+      margin-bottom: 16px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #5f6b7a;
+    }
+
+    .stat-numbers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px;
+      background: #f5f7fa;
+      border-radius: 8px;
+    }
+
+    .stat-count {
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 64px 24px;
+      color: #5f6b7a;
+    }
+
+    .empty-state-icon {
+      font-size: 60px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state-text {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    /* Checkbox & Label */
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: #1a2332;
+      cursor: pointer;
+    }
+
+    .range-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a2332;
+      margin-bottom: 8px;
+    }
+
+    .range-values {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #5f6b7a;
+      margin-top: 4px;
+    }
+
+    /* Status Message */
+    .status-message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status-info {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid #d1d9e6;
+      padding: 20px 24px;
+      text-align: center;
+      color: #5f6b7a;
+      font-size: 12px;
+      background: white;
+    }
+
+    /* Code Block */
+    code {
+      background: white;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      border: 1px solid #d1d9e6;
+      display: block;
+      overflow-x: auto;
+      color: #1a2332;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header .container {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .header-right {
+        text-align: left;
+      }
+
+      .balls-row {
+        justify-content: flex-start;
+      }
+
+      .input-group {
+        gap: 8px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tab-button {
+        padding: 12px 16px;
+        font-size: 12px;
+      }
+    }
+
+    .ml-auto {
+      margin-left: auto;
+    }
+
+    .mt-4 {
+      margin-top: 16px;
+    }
+
+    .space-y-4 > * + * {
+      margin-top: 16px;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .gap-3 {
+      gap: 12px;
+    }
+
+    .gap-2 {
+      gap: 8px;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="container">
+    <div class="header-left">
+      <div class="header-title">
+        <span style="font-size: 28px;">🇫🇷</span>
+        <h1>LOTO ANALYZER</h1>
+        <span class="badge">35 Hypothèses</span>
+      </div>
+      <p class="header-subtitle">Analyse basée sur <span id="totalDraws">2830</span> tirages · Numéros 1–49 · Chance 1–10</p>
+    </div>
+    <div class="header-right" id="lastDrawSection" style="display: none;">
+      <div class="last-draw-label">Dernier tirage</div>
+      <div class="last-draw-date" id="lastDrawDate"></div>
+      <div class="balls-row" id="lastDrawBalls"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation -->
+<div class="nav-tabs">
+  <div class="container" style="padding: 0;">
+    <button class="tab-button active" data-tab="analyseur">🎯 Analyseur</button>
+    <button class="tab-button" data-tab="generateur">🎲 Générateur</button>
+    <button class="tab-button" data-tab="historique">📋 Historique</button>
+    <button class="tab-button" data-tab="stats">📊 Statistiques</button>
+    <button class="tab-button" data-tab="importer">📁 Importer</button>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="container content">
+
+  <!-- Tab: Analyseur -->
+  <div id="analyseur" class="tab-content active">
+    <div class="card">
+      <div class="card-title">Saisir votre combinaison</div>
+      <div class="input-group">
+        <div class="input-field">
+          <span class="input-label">N1</span>
+          <select id="n1" data-index="0">
+            <option value="">—</option>
+          </select>
+        </div>
+        <div class="input-field">
+          <span class="input-label">N2</span>
+          <select id="n2" data-index="1">
+            <option value="">—</option>
+          </select>
+        </div>
+        <div class="input-field">
+          <span class="input-label">N3</span>
+          <select id="n3" data-index="2">
+            <option value="">—</option>
+          </select>
+        </div>
+        <div class="input-field">
+          <span class="input-label">N4</span>
+          <select id="n4" data-index="3">
+            <option value="">—</option>
+          </select>
+        </div>
+        <div class="input-field">
+          <span class="input-label">N5</span>
+          <select id="n5" data-index="4">
+            <option value="">—</option>
+          </select>
+        </div>
+        <div class="input-field" style="margin-left: 12px;">
+          <span class="input-label accent">⚡ Chance</span>
+          <select id="chance">
+            <option value="">—</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary ml-auto" onclick="app.clearAnalyseur()">Effacer</button>
+      </div>
+      <div id="ballsDisplay" class="mt-4" style="display: none;">
+        <div class="gap-2 flex flex-wrap items-center" id="ballsDisplayContent"></div>
+      </div>
+      <div id="errorAnalyseur" class="mt-4" style="display: none; color: #d63031; font-size: 12px;">
+        ⚠ Entrez exactement 5 numéros distincts (1–49)
+      </div>
+    </div>
+
+    <div id="analyseurEmpty" class="empty-state">
+      <div class="empty-state-icon">🎯</div>
+      <p class="empty-state-text">Saisissez 5 numéros + 1 numéro Chance pour analyser</p>
+    </div>
+
+    <div id="analyseurResults" style="display: none;">
+      <div class="score-card" id="scoreCard"></div>
+      <div id="categoriesContainer"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Générateur -->
+  <div id="generateur" class="tab-content">
+    <div class="card">
+      <div class="card-title">Paramètres de génération</div>
+      <div class="space-y-4">
+        <label class="checkbox-label">
+          <input type="checkbox" id="favorHot" checked>
+          <span>Favoriser les numéros chauds (10 derniers tirages)</span>
+        </label>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="avoidCold" checked>
+          <span>Éviter les numéros froids (retard &gt; 15)</span>
+        </label>
+
+        <div>
+          <label class="range-label">Hypothèses minimum à respecter : <span id="minHypoDisplay">25</span>/35</label>
+          <input type="range" id="minHypo" min="15" max="35" value="25">
+          <div class="range-values">
+            <span>15 (souple)</span>
+            <span>25 (équilibré)</span>
+            <span>35 (strict)</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="range-label">Nombre de grilles à générer</label>
+          <select id="nbGrids" style="width: 100%; max-width: 200px;">
+            <option value="3">3 grilles</option>
+            <option value="5" selected>5 grilles</option>
+            <option value="10">10 grilles</option>
+            <option value="15">15 grilles</option>
+            <option value="20">20 grilles</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="app.generate()">🎲 Générer les grilles</button>
+      </div>
+    </div>
+
+    <div id="generatedGrids" style="display: none;">
+      <h3 style="font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #5f6b7a; margin-bottom: 16px;">
+        <span id="gridsCount">0</span> grille<span id="gridsSuffix">s</span> générée<span id="gridsSuffix2">s</span>
+      </h3>
+      <div id="gridsContainer"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Historique -->
+  <div id="historique" class="tab-content">
+    <h3 style="font-weight: 700; margin-bottom: 16px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #5f6b7a;">
+      30 derniers tirages
+    </h3>
+    <div id="historyContainer" class="space-y-2"></div>
+  </div>
+
+  <!-- Tab: Statistiques -->
+  <div id="stats" class="tab-content">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-title">🔥 Top 15 Numéros Chauds (30 tirages)</div>
+        <div class="stat-numbers" id="hotNumbers"></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-title">❄️ Top 15 Numéros en Retard</div>
+        <div class="stat-numbers" id="coldNumbers"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Importer -->
+  <div id="importer" class="tab-content">
+    <div class="card">
+      <div class="card-title">Importer un historique CSV</div>
+
+      <div style="margin-bottom: 16px; padding: 16px; border-radius: 8px; background: #f5f7fa; color: #1a2332; font-size: 14px;">
+        <p style="font-weight: 600; margin-bottom: 8px;">Format attendu (CSV séparé par ';') :</p>
+        <code>annee_numero_de_tirage;jour_de_tirage;date_de_tirage;date_de_forclusion;boule_1;boule_2;boule_3;boule_4;boule_5;numero_chance;...</code>
+        <p style="margin-top: 8px; font-size: 12px; color: #5f6b7a;">
+          Les colonnes importantes : date_de_tirage (format JJ/MM/AAAA), boule_1 à boule_5, numero_chance
+        </p>
+      </div>
+
+      <input id="csvFile" type="file" accept=".csv">
+      <button class="btn btn-primary btn-block" onclick="document.getElementById('csvFile').click();">📁 Choisir un fichier CSV</button>
+
+      <div id="importStatus" class="status-message" style="display: none;"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  Loto Analyzer · 35 Hypothèses · <span id="footerDraws">2830</span> tirages analysés · À titre informatif uniquement
+</div>
+
+<script>
 // ═══════════════════════════════════════════════════
 // DONNÉES HISTORIQUES (100 derniers tirages réels)
 // ═══════════════════════════════════════════════════
 const LOTO_DATA_INIT = {"draws":[{"d":"15/10/2025","b":[17,1,22,9,48],"c":5},{"d":"18/10/2025","b":[17,49,47,11,19],"c":1},{"d":"20/10/2025","b":[38,24,12,43,34],"c":1},{"d":"22/10/2025","b":[49,29,31,4,39],"c":1},{"d":"25/10/2025","b":[6,16,4,5,35],"c":1},{"d":"27/10/2025","b":[48,47,23,45,10],"c":8},{"d":"29/10/2025","b":[7,6,45,34,35],"c":8},{"d":"31/10/2025","b":[10,36,24,40,26],"c":10},{"d":"01/11/2025","b":[3,33,17,24,26],"c":6},{"d":"03/11/2025","b":[32,3,49,29,2],"c":2},{"d":"05/11/2025","b":[45,29,31,23,19],"c":4},{"d":"08/11/2025","b":[16,32,48,36,27],"c":8},{"d":"10/11/2025","b":[8,37,9,16,45],"c":2},{"d":"12/11/2025","b":[8,29,33,37,3],"c":2},{"d":"15/11/2025","b":[11,5,23,22,24],"c":3},{"d":"17/11/2025","b":[26,45,28,17,7],"c":6},{"d":"19/11/2025","b":[46,26,33,45,24],"c":2},{"d":"22/11/2025","b":[7,10,45,34,40],"c":6},{"d":"24/11/2025","b":[47,29,36,28,22],"c":1},{"d":"26/11/2025","b":[14,16,26,9,33],"c":5},{"d":"29/11/2025","b":[8,13,20,27,23],"c":3},{"d":"01/12/2025","b":[38,46,11,13,14],"c":1},{"d":"03/12/2025","b":[28,13,10,36,18],"c":8},{"d":"06/12/2025","b":[14,2,24,34,33],"c":1},{"d":"08/12/2025","b":[9,41,8,11,17],"c":1},{"d":"10/12/2025","b":[34,44,33,35,39],"c":10},{"d":"13/12/2025","b":[25,15,7,10,22],"c":7},{"d":"15/12/2025","b":[38,43,32,26,42],"c":6},{"d":"17/12/2025","b":[2,14,49,20,30],"c":2},{"d":"20/12/2025","b":[28,16,42,47,37],"c":2},{"d":"22/12/2025","b":[40,20,49,16,41],"c":9},{"d":"24/12/2025","b":[5,42,45,9,33],"c":1},{"d":"25/12/2025","b":[44,35,30,2,3],"c":10},{"d":"27/12/2025","b":[17,16,41,42,49],"c":10},{"d":"29/12/2025","b":[21,10,47,43,33],"c":3},{"d":"31/12/2025","b":[43,6,19,39,15],"c":1},{"d":"03/01/2026","b":[29,30,31,9,40],"c":2},{"d":"05/01/2026","b":[30,13,23,31,5],"c":6},{"d":"07/01/2026","b":[5,36,35,17,30],"c":3},{"d":"10/01/2026","b":[16,1,36,7,35],"c":3},{"d":"12/01/2026","b":[2,39,32,24,13],"c":6},{"d":"14/01/2026","b":[23,28,5,4,31],"c":5},{"d":"17/01/2026","b":[42,34,26,12,49],"c":6},{"d":"19/01/2026","b":[13,34,16,24,12],"c":4},{"d":"21/01/2026","b":[40,25,29,27,45],"c":10},{"d":"24/01/2026","b":[30,39,10,33,18],"c":8},{"d":"26/01/2026","b":[25,32,28,9,36],"c":4},{"d":"28/01/2026","b":[42,7,11,30,10],"c":4},{"d":"31/01/2026","b":[24,14,4,1,21],"c":4},{"d":"02/02/2026","b":[7,12,11,41,29],"c":5},{"d":"04/02/2026","b":[1,24,37,12,11],"c":9},{"d":"07/02/2026","b":[49,9,41,20,2],"c":9},{"d":"09/02/2026","b":[23,25,42,38,22],"c":3},{"d":"11/02/2026","b":[36,3,44,47,32],"c":8},{"d":"13/02/2026","b":[26,5,20,34,39],"c":3},{"d":"14/02/2026","b":[9,14,27,33,17],"c":6},{"d":"16/02/2026","b":[35,17,21,29,8],"c":3},{"d":"18/02/2026","b":[25,4,22,36,16],"c":7},{"d":"21/02/2026","b":[4,44,32,17,14],"c":9},{"d":"23/02/2026","b":[29,15,20,47,41],"c":4},{"d":"25/02/2026","b":[8,30,26,22,9],"c":8},{"d":"28/02/2026","b":[18,40,49,31,24],"c":2},{"d":"02/03/2026","b":[40,19,37,34,20],"c":6},{"d":"04/03/2026","b":[14,47,46,16,40],"c":4},{"d":"07/03/2026","b":[22,21,11,9,10],"c":9},{"d":"09/03/2026","b":[16,24,5,35,12],"c":4},{"d":"11/03/2026","b":[14,18,12,16,10],"c":3},{"d":"13/03/2026","b":[16,40,49,48,17],"c":5},{"d":"14/03/2026","b":[22,23,10,46,25],"c":3},{"d":"16/03/2026","b":[31,25,42,5,14],"c":4},{"d":"18/03/2026","b":[13,18,8,48,45],"c":7},{"d":"21/03/2026","b":[3,45,33,19,24],"c":10},{"d":"23/03/2026","b":[30,9,42,38,3],"c":4},{"d":"25/03/2026","b":[48,30,19,28,35],"c":5},{"d":"28/03/2026","b":[38,30,28,17,45],"c":6},{"d":"30/03/2026","b":[10,47,8,28,29],"c":5},{"d":"01/04/2026","b":[43,34,47,23,3],"c":5},{"d":"04/04/2026","b":[5,6,36,7,21],"c":6},{"d":"06/04/2026","b":[33,29,19,3,23],"c":3},{"d":"08/04/2026","b":[23,16,46,13,26],"c":1},{"d":"11/04/2026","b":[48,7,45,41,39],"c":9},{"d":"13/04/2026","b":[22,4,10,18,16],"c":4},{"d":"15/04/2026","b":[44,21,2,48,47],"c":10},{"d":"18/04/2026","b":[22,25,24,5,23],"c":10},{"d":"20/04/2026","b":[21,29,33,2,12],"c":6},{"d":"22/04/2026","b":[37,30,40,38,43],"c":1},{"d":"24/04/2026","b":[2,12,16,26,20],"c":2},{"d":"25/04/2026","b":[25,9,22,17,49],"c":3},{"d":"27/04/2026","b":[6,27,43,23,15],"c":4},{"d":"29/04/2026","b":[30,2,37,3,31],"c":8},{"d":"02/05/2026","b":[17,29,19,10,41],"c":7},{"d":"04/05/2026","b":[46,15,4,18,8],"c":2},{"d":"06/05/2026","b":[7,18,27,35,48],"c":5},{"d":"09/05/2026","b":[25,21,16,31,26],"c":1},{"d":"11/05/2026","b":[18,30,39,17,34],"c":9},{"d":"13/05/2026","b":[46,17,41,35,38],"c":2},{"d":"16/05/2026","b":[30,1,34,32,12],"c":4},{"d":"18/05/2026","b":[32,14,36,33,49],"c":3},{"d":"20/05/2026","b":[28,30,8,48,15],"c":7},{"d":"23/05/2026","b":[20,36,23,21,38],"c":2}],"retards":{"1":3,"2":10,"3":10,"4":8,"5":16,"6":11,"7":7,"8":1,"9":12,"10":9,"11":35,"12":3,"13":20,"14":2,"15":1,"16":6,"17":4,"18":5,"19":9,"20":0,"21":0,"22":12,"23":0,"24":16,"25":6,"26":6,"27":7,"28":1,"29":9,"30":1,"31":6,"32":2,"33":2,"34":3,"35":4,"36":0,"37":10,"38":0,"39":5,"40":14,"41":4,"42":27,"43":11,"44":17,"45":19,"46":4,"47":17,"48":1,"49":2},"chanceRetards":{"1":6,"2":0,"3":2,"4":3,"5":7,"6":15,"7":1,"8":10,"9":5,"10":16},"freqAll":{"1":291,"2":284,"3":305,"4":285,"5":289,"6":297,"7":294,"8":272,"9":298,"10":292,"11":274,"12":284,"13":321,"14":268,"15":313,"16":299,"17":286,"18":273,"19":272,"20":285,"21":280,"22":314,"23":292,"24":292,"25":274,"26":299,"27":291,"28":292,"29":300,"30":298,"31":300,"32":280,"33":279,"34":282,"35":291,"36":293,"37":280,"38":301,"39":261,"40":291,"41":323,"42":273,"43":276,"44":287,"45":290,"46":282,"47":280,"48":276,"49":291},"freq30":{"1":1,"2":4,"3":5,"4":2,"5":2,"6":2,"7":3,"8":4,"9":2,"10":3,"11":0,"12":3,"13":2,"14":1,"15":3,"16":4,"17":5,"18":5,"19":4,"20":2,"21":5,"22":3,"23":6,"24":2,"25":3,"26":3,"27":2,"28":4,"29":4,"30":8,"31":2,"32":2,"33":4,"34":3,"35":3,"36":3,"37":2,"38":5,"39":2,"40":1,"41":3,"42":1,"43":3,"44":1,"45":4,"46":3,"47":3,"48":6,"49":2},"freqChance":{"1":294,"2":275,"3":275,"4":285,"5":293,"6":260,"7":309,"8":263,"9":292,"10":284},"totalDraws":2830};
 
+const COLORS = {
+  primary: '#0066cc',
+  secondary: '#003d7a',
+  accent: '#ff6b00',
+  bg: '#f5f7fa',
+  card: '#ffffff',
+  border: '#d1d9e6',
+  text: '#1a2332',
+  textLight: '#5f6b7a',
+  success: '#00b894',
+  warning: '#fdcb6e',
+  error: '#d63031',
+};
+
+const PRIMES = new Set([2,3,5,7,11,13,17,19,23,29,31,37,41,43,47]);
+
+function secteur(n) {
+  if(n<=10) return 1;
+  if(n<=20) return 2;
+  if(n<=30) return 3;
+  if(n<=40) return 4;
+  return 5;
+}
+
 // ═══════════════════════════════════════════════════
 // MOTEUR DES 35 HYPOTHÈSES LOTO
 // ═══════════════════════════════════════════════════
-const PRIMES = new Set([2,3,5,7,11,13,17,19,23,29,31,37,41,43,47]);
-
-function secteur(n) { if(n<=10) return 1; if(n<=20) return 2; if(n<=30) return 3; if(n<=40) return 4; return 5; }
-
 function checkHypotheses(nums, chance, history) {
   const s = [...nums].sort((a,b)=>a-b);
   const n1=s[0], n3=s[2], n5=s[4];
@@ -101,97 +990,96 @@ function checkHypotheses(nums, chance, history) {
   const overlapT1 = prevBalls.filter(n=>nums.includes(n)).length;
 
   return [
-    { id:'L1', cat:'Masse', label:'La Somme', rule:'[95 – 155]', stats:'68.1%',
+    { id:'L1', cat:'Masse', label:'La Somme', rule:'[95 – 155]',
       pass: sum>=95&&sum<=155, detail:`Somme = ${sum}` },
-    { id:'L2', cat:'Masse', label:'Distribution Dizaines', rule:'Max 2/dizaine', stats:'71.8%',
+    { id:'L2', cat:'Masse', label:'Distribution Dizaines', rule:'Max 2/dizaine',
       pass: mpd<=2, detail:`Max par dizaine = ${mpd}` },
-    { id:'L3', cat:'Masse', label:'Consécutifs Modérés', rule:'≤ 1 paire consécutive', stats:'95.1%',
+    { id:'L3', cat:'Masse', label:'Consécutifs Modérés', rule:'≤ 1 paire consécutive',
       pass: cp<=1, detail:`${cp} paire(s) consécutive(s)` },
-    { id:'L4', cat:'Masse', label:'Les Intervalles', rule:'Écart max ≤ 25', stats:'92.3%',
+    { id:'L4', cat:'Masse', label:'Les Intervalles', rule:'Écart max ≤ 25',
       pass: mg<=25, detail:`Écart max = ${mg}` },
-    { id:'L8', cat:'Masse', label:'Seuil N1', rule:'N1 ≤ 10', stats:'70.9%',
+    { id:'L8', cat:'Masse', label:'Seuil N1', rule:'N1 ≤ 10',
       pass: n1<=10, detail:`N1 = ${n1}` },
-    { id:'L9', cat:'Masse', label:'Seuil N5', rule:'N5 ≥ 40', stats:'~55%',
+    { id:'L9', cat:'Masse', label:'Seuil N5', rule:'N5 ≥ 40',
       pass: n5>=40, detail:`N5 = ${n5}` },
-    { id:'L13', cat:'Masse', label:'Mixité Haute', rule:'Max 2 dans 40–49', stats:'~80%',
+    { id:'L13', cat:'Masse', label:'Mixité Haute', rule:'Max 2 dans 40–49',
       pass: nbIn4049<=2, detail:`${nbIn4049} numéro(s) dans 40-49` },
-    { id:'L18', cat:'Masse', label:'Saturation Max', rule:'Max 3/dizaine', stats:'98.1%',
+    { id:'L18', cat:'Masse', label:'Saturation Max', rule:'Max 3/dizaine',
       pass: mpd<=3, detail:`Max par dizaine = ${mpd}` },
-    { id:'L19', cat:'Masse', label:'Équilibre Bas/Haut', rule:'2 ou 3 dans 1–25', stats:'66.3%',
+    { id:'L19', cat:'Masse', label:'Équilibre Bas/Haut', rule:'2 ou 3 dans 1–25',
       pass: low>=2&&low<=3, detail:`${low} numéro(s) dans 1-25` },
-    { id:'L5', cat:'Parité', label:'Noyau de Parité', rule:'2 ou 3 pairs', stats:'65.0%',
+    { id:'L5', cat:'Parité', label:'Noyau de Parité', rule:'2 ou 3 pairs',
       pass: evens===2||evens===3, detail:`${evens} pairs` },
-    { id:'L6', cat:'Parité', label:'Polarité Identique', rule:'N1 et N5 même parité', stats:'50.5%',
+    { id:'L6', cat:'Parité', label:'Polarité Identique', rule:'N1 et N5 même parité',
       pass: n1%2===n5%2, detail:`N1=${n1}(${n1%2===0?'P':'I'}), N5=${n5}(${n5%2===0?'P':'I'})` },
-    { id:'L26', cat:'Parité', label:'Pari Majoritaire', rule:'Entre 1 et 4 pairs', stats:'95.5%',
+    { id:'L26', cat:'Parité', label:'Pari Majoritaire', rule:'Entre 1 et 4 pairs',
       pass: evens>=1&&evens<=4, detail:`${evens} pairs` },
-    { id:'L7', cat:'Finales', label:'Finales N1/N5 ≠', rule:'Finales différentes', stats:'90.0%',
+    { id:'L7', cat:'Finales', label:'Finales N1/N5 ≠', rule:'Finales différentes',
       pass: n1%10!==n5%10, detail:`Fin.N1=${n1%10}, Fin.N5=${n5%10}` },
-    { id:'L12', cat:'Finales', label:'La Diversité', rule:'≥ 4 finales uniques', stats:'85.3%',
+    { id:'L12', cat:'Finales', label:'La Diversité', rule:'≥ 4 finales uniques',
       pass: uniqueFinals>=4, detail:`${uniqueFinals} finales uniques` },
-    { id:'L11', cat:'Thermo', label:'Doublon Interne', rule:'≥ 1 doublet de finale', stats:'63.6%',
+    { id:'L11', cat:'Thermo', label:'Doublon Interne', rule:'≥ 1 doublet de finale',
       pass: uniqueFinals<5, detail:`${5-uniqueFinals} doublon(s)` },
-    { id:'L15', cat:'Thermo', label:'Rappel T-1', rule:'Aucun commun avec T-1', stats:'57.8%',
+    { id:'L15', cat:'Thermo', label:'Rappel T-1', rule:'Aucun commun avec T-1',
       pass: overlapT1===0, detail:`${overlapT1} commun(s) avec ${lastDraw?.d||'?'}` },
-    { id:'L16', cat:'Thermo', label:'Hot Numbers', rule:'≥ 2 chauds (10 derniers)', stats:'77.5%',
+    { id:'L16', cat:'Thermo', label:'Hot Numbers', rule:'≥ 2 chauds (10 derniers)',
       pass: hc>=2, detail:`${hc} numéro(s) chauds` },
-    { id:'L14', cat:'Chance', label:'Non-Pollution', rule:'Fin.Chance ∉ fins. numéros', stats:'58.1%',
+    { id:'L14', cat:'Chance', label:'Non-Pollution', rule:'Fin.Chance ∉ fins. numéros',
       pass: !finals.includes(chFin), detail:`Fin.Chance=${chFin}, Fins=[${finals.join(',')}]` },
-    { id:'L20', cat:'Chance', label:'Chance Centrale', rule:'Chance ∈ [3, 8]', stats:'68.9%',
+    { id:'L20', cat:'Chance', label:'Chance Centrale', rule:'Chance ∈ [3, 8]',
       pass: chance>=3&&chance<=8, detail:`Chance = ${chance}` },
-    { id:'L21', cat:'Chance', label:'Chance ≠ Précédente', rule:'Chance ≠ T-1', stats:'89.9%',
+    { id:'L21', cat:'Chance', label:'Chance ≠ Précédente', rule:'Chance ≠ T-1',
       pass: chance!==prevChance, detail:`Chance=${chance}, T-1=${prevChance}` },
-    { id:'L22', cat:'Chance', label:'Écart Chance T-1', rule:'|Δchance| ≥ 2', stats:'~75%',
+    { id:'L22', cat:'Chance', label:'Écart Chance T-1', rule:'|Δchance| ≥ 2',
       pass: Math.abs(chance-prevChance)>=2, detail:`Écart = ${Math.abs(chance-prevChance)}` },
-    { id:'L30', cat:'Chance', label:'Chance Élargie', rule:'Chance ∈ [2, 9]', stats:'79.8%',
+    { id:'L30', cat:'Chance', label:'Chance Élargie', rule:'Chance ∈ [2, 9]',
       pass: chance>=2&&chance<=9, detail:`Chance = ${chance}` },
-    { id:'L33', cat:'Chance', label:'Chance Non-Numéro', rule:'Chance ∉ 5 numéros', stats:'89.4%',
+    { id:'L33', cat:'Chance', label:'Chance Non-Numéro', rule:'Chance ∉ 5 numéros',
       pass: !nums.includes(chance), detail:`Chance ${nums.includes(chance)?'présente':'absente'}` },
-    { id:'L10', cat:'Sécu', label:'Indép. N5/Chance', rule:'Fin.N5 ≠ Chance', stats:'~90%',
+    { id:'L10', cat:'Sécu', label:'Indép. N5/Chance', rule:'Fin.N5 ≠ Chance',
       pass: n5Fin!==chance, detail:`Fin.N5=${n5Fin}, Chance=${chance}` },
-    { id:'L28', cat:'Sécu', label:'Résonance Chance', rule:'Fin.Chance = 1 fin. numéro', stats:'41.9%',
+    { id:'L28', cat:'Sécu', label:'Résonance Chance', rule:'Fin.Chance = 1 fin. numéro',
       pass: finals.includes(chFin), detail:`Fin.Chance=${chFin}, dans [${finals.join(',')}]?` },
-    { id:'L29', cat:'Sécu', label:'Bords Distincts', rule:'N1/N5 dizaines diff.', stats:'99.9%',
+    { id:'L29', cat:'Sécu', label:'Bords Distincts', rule:'N1/N5 dizaines diff.',
       pass: Math.floor((n1-1)/10)!==Math.floor((n5-1)/10), detail:`Diz.N1=${Math.floor((n1-1)/10)+1}, Diz.N5=${Math.floor((n5-1)/10)+1}` },
-    { id:'L34', cat:'Sécu', label:'Indép. Pivot/Chance', rule:'Fin.N3 ≠ Chance%10', stats:'~90%',
+    { id:'L34', cat:'Sécu', label:'Indép. Pivot/Chance', rule:'Fin.N3 ≠ Chance%10',
       pass: n3Fin!==chFin, detail:`Fin.N3=${n3Fin}, Fin.Chance=${chFin}` },
-    { id:'L17', cat:'Deep', label:'Le Pivot N3', rule:'N3 ∈ [15, 38]', stats:'80.1%',
+    { id:'L17', cat:'Deep', label:'Le Pivot N3', rule:'N3 ∈ [15, 38]',
       pass: n3>=15&&n3<=38, detail:`N3 = ${n3}` },
-    { id:'L23', cat:'Deep', label:"L'Inédit", rule:'Aucun triplet T-5', stats:'97.8%',
+    { id:'L23', cat:'Deep', label:"L'Inédit", rule:'Aucun triplet T-5',
       pass: !triplet, detail: triplet||'Aucun triplet récent' },
-    { id:'L24', cat:'Deep', label:'Binôme Actif', rule:'≥ 1 binôme dans T-5', stats:'~95%',
+    { id:'L24', cat:'Deep', label:'Binôme Actif', rule:'≥ 1 binôme dans T-5',
       pass: !!binome, detail: binome||'Aucun binôme trouvé' },
-    { id:'L25', cat:'Deep', label:'Asymétrie Visuelle', rule:'Max 2 en 20–35', stats:'70.7%',
+    { id:'L25', cat:'Deep', label:'Asymétrie Visuelle', rule:'Max 2 en 20–35',
       pass: nbIn2035<=2, detail:`${nbIn2035} numéro(s) en 20-35` },
-    { id:'L27', cat:'Deep', label:'Indép. Arithmétique', rule:'Pas de progression PA', stats:'72.4%',
+    { id:'L27', cat:'Deep', label:'Indép. Arithmétique', rule:'Pas de progression PA',
       pass: !arith, detail: arith?`PA: ${arith}`:'Aucune PA détectée' },
-    { id:'L31', cat:'Deep', label:'Couverture Secteurs', rule:'≥ 3 secteurs / 5', stats:'95.1%',
+    { id:'L31', cat:'Deep', label:'Couverture Secteurs', rule:'≥ 3 secteurs / 5',
       pass: nbSectors>=3, detail:`${nbSectors} secteurs couverts` },
-    { id:'L32', cat:'Deep', label:'Nombres Premiers', rule:'1 ou 2 premiers', stats:'69.6%',
+    { id:'L32', cat:'Deep', label:'Nombres Premiers', rule:'1 ou 2 premiers',
       pass: nbPrimes>=1&&nbPrimes<=2, detail:`${nbPrimes} premier(s)` },
-    { id:'L35', cat:'Deep', label:'Somme Finales', rule:'Somme fins ∈ [15, 35]', stats:'89.0%',
+    { id:'L35', cat:'Deep', label:'Somme Finales', rule:'Somme fins ∈ [15, 35]',
       pass: sumFinals>=15&&sumFinals<=35, detail:`Somme finales = ${sumFinals}` },
   ];
 }
 
-// Générateur de combinaisons
 function generateCombo(history, retards, chanceRetards, settings) {
   const { favorHot, avoidCold, minHypo } = settings;
   const recent = history.slice(-10).flatMap(d=>d.b);
   const hotNums = [...new Set(recent)];
   const coldNums = Object.entries(retards).filter(([,r])=>r>=15).map(([n])=>Number(n));
-  
+
   const attempts = 1000;
   for(let a=0; a<attempts; a++) {
     let pool = Array.from({length:49},(_,i)=>i+1);
-    
+
     if(favorHot && hotNums.length>0) {
       pool = Math.random()<0.6 ? hotNums : pool;
     }
     if(avoidCold && coldNums.length>0) {
       pool = pool.filter(n => !coldNums.includes(n));
     }
-    
+
     const nums = [];
     while(nums.length<5 && pool.length>0) {
       const idx = Math.floor(Math.random()*pool.length);
@@ -199,7 +1087,7 @@ function generateCombo(history, retards, chanceRetards, settings) {
       pool.splice(idx,1);
     }
     if(nums.length<5) continue;
-    
+
     let chancePool = Array.from({length:10},(_,i)=>i+1);
     if(avoidCold) {
       const coldChance = Object.entries(chanceRetards).filter(([,r])=>r>=10).map(([c])=>Number(c));
@@ -207,14 +1095,14 @@ function generateCombo(history, retards, chanceRetards, settings) {
     }
     if(chancePool.length===0) chancePool = Array.from({length:10},(_,i)=>i+1);
     const chance = chancePool[Math.floor(Math.random()*chancePool.length)];
-    
+
     const results = checkHypotheses(nums, chance, history.slice(0,-1));
     const score = results.filter(h=>h.pass).length;
     if(score >= minHypo) {
       return { nums, chance, score };
     }
   }
-  
+
   const nums = [];
   while(nums.length<5) {
     const n = Math.floor(Math.random()*49)+1;
@@ -226,746 +1114,377 @@ function generateCombo(history, retards, chanceRetards, settings) {
 }
 
 // ═══════════════════════════════════════════════════
-// UI COMPONENTS - COULEURS FDJ (clair/bleu)
+// APPLICATION STATE & FUNCTIONS
 // ═══════════════════════════════════════════════════
-const COLORS = {
-  primary: '#0066cc',
-  secondary: '#003d7a',
-  accent: '#ff6b00',
-  bg: '#f5f7fa',
-  card: '#ffffff',
-  border: '#d1d9e6',
-  text: '#1a2332',
-  textLight: '#5f6b7a',
-  success: '#00b894',
-  warning: '#fdcb6e',
-  error: '#d63031',
-};
+const app = {
+  data: LOTO_DATA_INIT,
+  state: {
+    nums: [null, null, null, null, null],
+    chance: null,
+    currentTab: 'analyseur',
+    generatedGrids: [],
+    settings: { favorHot: true, avoidCold: true, minHypo: 25 }
+  },
 
-function Ball({ n, size='md' }) {
-  const sz = size==='sm' ? 'w-7 h-7 text-xs' : size==='lg' ? 'w-11 h-11 text-base' : 'w-9 h-9 text-sm';
-  return (
-    <span className={`${sz} rounded-full inline-flex items-center justify-center font-bold select-none shadow-sm`}
-      style={{background:COLORS.primary,color:'#fff'}}>{n}</span>
-  );
-}
-function ChanceBall({ n, size='md' }) {
-  const sz = size==='sm' ? 'w-7 h-7 text-xs' : size==='lg' ? 'w-11 h-11 text-base' : 'w-9 h-9 text-sm';
-  return (
-    <span className={`${sz} rounded-full inline-flex items-center justify-center font-bold select-none shadow-sm`}
-      style={{background:COLORS.accent,color:'#fff'}}>{n}</span>
-  );
-}
+  init() {
+    this.populateSelects();
+    this.setupEventListeners();
+    this.updateHeader();
+    this.renderHistorique();
+    this.renderStats();
+  },
 
-function NumberPicker({ value, onChange, max=49 }) {
-  return (
-    <select value={value||''} onChange={e=>onChange(e.target.value?Number(e.target.value):null)}
-      className="rounded-lg text-center font-bold text-sm py-2 px-2 w-16 cursor-pointer shadow-sm"
-      style={{background:COLORS.card,color:COLORS.text,border:`2px solid ${COLORS.border}`}}>
-      <option value="">—</option>
-      {Array.from({length:max},(_,i)=>i+1).map(n=>
-        <option key={n} value={n}>{n}</option>
-      )}
-    </select>
-  );
-}
+  populateSelects() {
+    for(let i = 1; i <= 49; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i;
+      document.getElementById('n1').appendChild(opt.cloneNode(true));
+      document.getElementById('n2').appendChild(opt.cloneNode(true));
+      document.getElementById('n3').appendChild(opt.cloneNode(true));
+      document.getElementById('n4').appendChild(opt.cloneNode(true));
+      document.getElementById('n5').appendChild(opt.cloneNode(true));
+    }
+    for(let i = 1; i <= 10; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i;
+      document.getElementById('chance').appendChild(opt.cloneNode(true));
+    }
+  },
 
-// ═══════════════════════════════════════════════════
-// TAB: ANALYSEUR
-// ═══════════════════════════════════════════════════
-function TabAnalyseur({ history }) {
-  const [nums, setNums] = useState([null,null,null,null,null]);
-  const [chance, setChance] = useState(null);
+  setupEventListeners() {
+    ['n1', 'n2', 'n3', 'n4', 'n5'].forEach((id, idx) => {
+      document.getElementById(id).addEventListener('change', (e) => {
+        this.state.nums[idx] = e.target.value ? Number(e.target.value) : null;
+        this.renderAnalyseur();
+      });
+    });
 
-  const validNums = nums.filter(Boolean);
-  const unique = new Set(validNums).size;
-  const ready = unique===5 && chance!==null;
+    document.getElementById('chance').addEventListener('change', (e) => {
+      this.state.chance = e.target.value ? Number(e.target.value) : null;
+      this.renderAnalyseur();
+    });
 
-  const results = useMemo(() => {
-    if(!ready) return null;
-    return checkHypotheses(validNums, chance, history.slice(0,-1));
-  },[ready, validNums, chance, history]);
+    document.querySelectorAll('.tab-button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tabId = e.target.getAttribute('data-tab');
+        this.switchTab(tabId);
+      });
+    });
 
-  const score = results ? results.filter(h=>h.pass).length : 0;
-  const total = 35;
+    document.getElementById('minHypo').addEventListener('change', (e) => {
+      this.state.settings.minHypo = Number(e.target.value);
+      document.getElementById('minHypoDisplay').textContent = e.target.value;
+    });
 
-  function setNum(idx, val) {
-    const next = [...nums];
-    next[idx] = val;
-    setNums(next);
-  }
+    document.getElementById('favorHot').addEventListener('change', (e) => {
+      this.state.settings.favorHot = e.target.checked;
+    });
 
-  const pct = Math.round(score/total*100);
-  const scoreColor = score>=30?COLORS.success:score>=25?'#00b894':score>=20?COLORS.warning:COLORS.error;
+    document.getElementById('avoidCold').addEventListener('change', (e) => {
+      this.state.settings.avoidCold = e.target.checked;
+    });
 
-  const categories = [
-    { key:'Masse', label:'Architecture de Masse', items: results?.filter(h=>h.cat==='Masse')||[] },
-    { key:'Parité', label:'Parité & Polarité', items: results?.filter(h=>h.cat==='Parité')||[] },
-    { key:'Finales', label:'Terminaisons & Finales', items: results?.filter(h=>h.cat==='Finales')||[] },
-    { key:'Thermo', label:'Thermique & Dynamique', items: results?.filter(h=>h.cat==='Thermo')||[] },
-    { key:'Chance', label:'Secteur Chance', items: results?.filter(h=>h.cat==='Chance')||[] },
-    { key:'Sécu', label:'Sécurité & Résonances', items: results?.filter(h=>h.cat==='Sécu')||[] },
-    { key:'Deep', label:'Deep Dive', items: results?.filter(h=>h.cat==='Deep')||[] },
-  ];
+    document.getElementById('nbGrids').addEventListener('change', (e) => {
+      // handled on generate
+    });
 
-  return (
-    <div style={{padding:'24px 0'}}>
-      <div className="rounded-xl p-6 mb-6 shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-        <h3 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{color:COLORS.textLight}}>
-          Saisir votre combinaison
-        </h3>
-        <div className="flex flex-wrap gap-3 items-end">
-          {nums.map((n,i) => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <span className="text-xs font-semibold" style={{color:COLORS.textLight}}>N{i+1}</span>
-              <NumberPicker value={n} onChange={v=>setNum(i,v)} max={49} />
-            </div>
-          ))}
-          <div className="flex flex-col items-center gap-2" style={{marginLeft:'12px'}}>
-            <span className="text-xs font-bold" style={{color:COLORS.accent}}>⚡ Chance</span>
-            <NumberPicker value={chance} onChange={setChance} max={10} />
-          </div>
-          <button onClick={()=>{setNums([null,null,null,null,null]);setChance(null);}}
-            className="ml-auto px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all hover:opacity-80"
-            style={{background:COLORS.border,color:COLORS.textLight}}>
-            Effacer
-          </button>
-        </div>
-        {validNums.length>0 && (
-          <div className="flex gap-2 mt-4 flex-wrap items-center">
-            {validNums.sort((a,b)=>a-b).map((n,i)=><Ball key={i} n={n} size="lg"/>)}
-            {chance && <><span style={{color:COLORS.textLight,margin:'0 4px'}}>+</span><ChanceBall n={chance} size="lg"/></>}
-          </div>
-        )}
-        {unique>0&&unique<5 && <p className="mt-2 text-xs" style={{color:COLORS.error}}>⚠ Entrez exactement 5 numéros distincts (1–49)</p>}
-      </div>
+    document.getElementById('csvFile').addEventListener('change', (e) => {
+      this.handleCSVImport(e);
+    });
+  },
 
-      {!ready && (
-        <div className="text-center py-16" style={{color:COLORS.textLight}}>
-          <div className="text-5xl mb-4">🎯</div>
-          <p className="font-medium">Saisissez 5 numéros + 1 numéro Chance pour analyser</p>
-        </div>
-      )}
+  switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
 
-      {ready && results && (
-        <>
-          <div className="rounded-xl p-6 mb-6 text-center shadow-sm" style={{background:COLORS.card,border:`2px solid ${scoreColor}`}}>
-            <div className="text-6xl font-black mb-2" style={{color:scoreColor,fontFamily:'monospace'}}>
-              {score}<span style={{color:COLORS.textLight,fontSize:'2rem'}}>/{total}</span>
-            </div>
-            <div className="text-lg font-semibold mb-3" style={{color:COLORS.text}}>Hypothèses validées</div>
-            <div className="w-full rounded-full overflow-hidden" style={{height:'12px',background:COLORS.bg}}>
-              <div style={{width:`${pct}%`,height:'100%',background:scoreColor,transition:'width 1s ease',borderRadius:'9999px'}}/>
-            </div>
-            <div className="mt-2 text-sm font-semibold" style={{color:COLORS.textLight}}>{pct}% de conformité</div>
-          </div>
+    document.getElementById(tabId).classList.add('active');
+    document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
 
-          {categories.map(({key,label,items})=>{
-            if(!items.length) return null;
-            const catPass = items.filter(h=>h.pass).length;
-            return (
-              <div key={key} className="rounded-xl mb-4 overflow-hidden shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-                <div className="flex items-center justify-between px-5 py-3" style={{background:COLORS.bg}}>
-                  <span className="font-bold text-sm" style={{color:COLORS.text}}>{label}</span>
-                  <span className="font-mono text-sm font-bold" style={{color:catPass===items.length?COLORS.success:catPass===0?COLORS.error:COLORS.warning}}>
-                    {catPass}/{items.length}
-                  </span>
+    this.state.currentTab = tabId;
+  },
+
+  updateHeader() {
+    const lastDraw = this.data.draws[this.data.draws.length - 1];
+    if(lastDraw) {
+      document.getElementById('lastDrawSection').style.display = 'block';
+      document.getElementById('lastDrawDate').textContent = lastDraw.d;
+      const sorted = [...lastDraw.b].sort((a,b)=>a-b);
+      const ballsHtml = sorted.map(n => `<span class="ball sm">${n}</span>`).join('') +
+                        ` <span style="color: #5f6b7a; margin: 0 6px; font-size: 12px;">+</span> ` +
+                        `<span class="ball sm chance">${lastDraw.c}</span>`;
+      document.getElementById('lastDrawBalls').innerHTML = ballsHtml;
+    }
+    document.getElementById('totalDraws').textContent = this.data.totalDraws.toLocaleString('fr-FR');
+    document.getElementById('footerDraws').textContent = this.data.totalDraws.toLocaleString('fr-FR');
+  },
+
+  renderAnalyseur() {
+    const validNums = this.state.nums.filter(n => n !== null);
+    const unique = new Set(validNums).size;
+    const ready = unique === 5 && this.state.chance !== null;
+
+    const ballsDisplay = document.getElementById('ballsDisplay');
+    const errorMsg = document.getElementById('errorAnalyseur');
+    const empty = document.getElementById('analyseurEmpty');
+    const results = document.getElementById('analyseurResults');
+
+    if(validNums.length > 0) {
+      const sorted = validNums.sort((a,b)=>a-b);
+      const ballsHtml = sorted.map(n => `<span class="ball">${n}</span>`).join('') +
+                        (this.state.chance ? ` <span style="color: #5f6b7a; margin: 0 8px;">+</span> <span class="ball chance">${this.state.chance}</span>` : '');
+      document.getElementById('ballsDisplayContent').innerHTML = ballsHtml;
+      ballsDisplay.style.display = 'block';
+    } else {
+      ballsDisplay.style.display = 'none';
+    }
+
+    if(unique > 0 && unique < 5) {
+      errorMsg.style.display = 'block';
+    } else {
+      errorMsg.style.display = 'none';
+    }
+
+    if(!ready) {
+      empty.style.display = 'block';
+      results.style.display = 'none';
+    } else {
+      empty.style.display = 'none';
+
+      const hypotheses = checkHypotheses(validNums, this.state.chance, this.data.draws.slice(0,-1));
+      const score = hypotheses.filter(h => h.pass).length;
+      const total = 35;
+      const pct = Math.round(score / total * 100);
+      const scoreColor = score >= 30 ? COLORS.success : score >= 25 ? '#00b894' : score >= 20 ? COLORS.warning : COLORS.error;
+
+      const scoreHTML = `
+        <div style="color: ${scoreColor};" class="score-number">${score}<span style="color: ${COLORS.textLight}; font-size: 24px;">/${total}</span></div>
+        <div class="score-label">Hypothèses validées</div>
+        <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%; background: ${scoreColor};"></div></div>
+        <div class="progress-text">${pct}% de conformité</div>
+      `;
+      document.getElementById('scoreCard').innerHTML = scoreHTML;
+      document.getElementById('scoreCard').style.borderColor = scoreColor;
+
+      const categories = [
+        { key:'Masse', label:'Architecture de Masse', items: hypotheses.filter(h=>h.cat==='Masse') },
+        { key:'Parité', label:'Parité & Polarité', items: hypotheses.filter(h=>h.cat==='Parité') },
+        { key:'Finales', label:'Terminaisons & Finales', items: hypotheses.filter(h=>h.cat==='Finales') },
+        { key:'Thermo', label:'Thermique & Dynamique', items: hypotheses.filter(h=>h.cat==='Thermo') },
+        { key:'Chance', label:'Secteur Chance', items: hypotheses.filter(h=>h.cat==='Chance') },
+        { key:'Sécu', label:'Sécurité & Résonances', items: hypotheses.filter(h=>h.cat==='Sécu') },
+        { key:'Deep', label:'Deep Dive', items: hypotheses.filter(h=>h.cat==='Deep') },
+      ];
+
+      let catHTML = '';
+      categories.forEach(cat => {
+        if(cat.items.length === 0) return;
+        const catPass = cat.items.filter(h => h.pass).length;
+        let itemsHTML = '';
+        cat.items.forEach(h => {
+          const icon = h.pass ? '✅' : '❌';
+          const detailColor = h.pass ? COLORS.success : COLORS.error;
+          itemsHTML += `
+            <div class="hypothesis">
+              <div class="hypothesis-icon">${icon}</div>
+              <div class="hypothesis-content">
+                <div class="hypothesis-header">
+                  <span class="hypothesis-id">${h.id}</span>
+                  <span class="hypothesis-label">${h.label}</span>
+                  <span class="hypothesis-rule">${h.rule}</span>
                 </div>
-                <div className="divide-y" style={{borderColor:COLORS.border}}>
-                  {items.map(h=>(
-                    <div key={h.id} className="flex items-start gap-3 px-5 py-3">
-                      <span className="mt-0.5 text-lg">{h.pass?'✅':'❌'}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs px-2 py-0.5 rounded font-semibold" style={{background:COLORS.bg,color:COLORS.textLight}}>{h.id}</span>
-                          <span className="font-semibold text-sm" style={{color:COLORS.text}}>{h.label}</span>
-                          <span className="text-xs" style={{color:COLORS.textLight}}>{h.rule}</span>
-                        </div>
-                        <p className="text-xs mt-1" style={{color:h.pass?COLORS.success:COLORS.error}}>{h.detail}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p class="hypothesis-detail" style="color: ${detailColor};">${h.detail}</p>
               </div>
-            );
-          })}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════
-// TAB: HYPOTHÈSES (Liste complète)
-// ═══════════════════════════════════════════════════
-function TabHypotheses() {
-  const allHypos = checkHypotheses([1,15,25,35,45], 5, [{d:'',b:[2,16,26,36,46],c:3}]);
-  
-  const categories = [
-    { key:'Masse', label:'Architecture de Masse (9)', items: allHypos.filter(h=>h.cat==='Masse') },
-    { key:'Parité', label:'Parité & Polarité (3)', items: allHypos.filter(h=>h.cat==='Parité') },
-    { key:'Finales', label:'Terminaisons & Finales (2)', items: allHypos.filter(h=>h.cat==='Finales') },
-    { key:'Thermo', label:'Thermique & Dynamique (3)', items: allHypos.filter(h=>h.cat==='Thermo') },
-    { key:'Chance', label:'Secteur Chance (6)', items: allHypos.filter(h=>h.cat==='Chance') },
-    { key:'Sécu', label:'Sécurité & Résonances (4)', items: allHypos.filter(h=>h.cat==='Sécu') },
-    { key:'Deep', label:'Deep Dive (8)', items: allHypos.filter(h=>h.cat==='Deep') },
-  ];
-
-  return (
-    <div style={{padding:'24px 0'}}>
-      <div className="rounded-xl p-6 mb-6 shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-        <h2 className="text-xl font-black mb-2" style={{color:COLORS.text}}>Les 35 Hypothèses Loto</h2>
-        <p className="text-sm" style={{color:COLORS.textLight}}>
-          Règles statistiques issues de l'analyse de 2 830 tirages réels (2008–2026)
-        </p>
-      </div>
-
-      {categories.map(({key,label,items})=>(
-        <div key={key} className="rounded-xl mb-4 overflow-hidden shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-          <div className="px-5 py-3" style={{background:COLORS.bg}}>
-            <h3 className="font-bold text-sm" style={{color:COLORS.text}}>{label}</h3>
+            </div>
+          `;
+        });
+        const catColor = catPass === cat.items.length ? COLORS.success : catPass === 0 ? COLORS.error : COLORS.warning;
+        catHTML += `
+          <div class="category">
+            <div class="category-header">
+              <span class="category-title">${cat.label}</span>
+              <span class="category-score" style="color: ${catColor};">${catPass}/${cat.items.length}</span>
+            </div>
+            <div class="category-items">${itemsHTML}</div>
           </div>
-          <div className="divide-y" style={{borderColor:COLORS.border}}>
-            {items.map(h=>(
-              <div key={h.id} className="px-5 py-3">
-                <div className="flex items-start gap-3 mb-1">
-                  <span className="font-mono text-xs px-2 py-0.5 rounded font-bold" style={{background:COLORS.primary,color:'#fff'}}>{h.id}</span>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-bold text-sm" style={{color:COLORS.text}}>{h.label}</span>
-                      <span className="text-xs px-2 py-0.5 rounded font-semibold" style={{background:COLORS.bg,color:COLORS.success}}>
-                        {h.stats}
-                      </span>
-                    </div>
-                    <p className="text-sm" style={{color:COLORS.textLight}}>{h.rule}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+        `;
+      });
+      document.getElementById('categoriesContainer').innerHTML = catHTML;
+      results.style.display = 'block';
+    }
+  },
 
-// ═══════════════════════════════════════════════════
-// TAB: GÉNÉRATEUR
-// ═══════════════════════════════════════════════════
-function TabGenerateur({ history, data }) {
-  const [grids, setGrids] = useState([]);
-  const [settings, setSettings] = useState({ favorHot: true, avoidCold: true, minHypo: 25 });
-  const [nbGrids, setNbGrids] = useState(5);
+  clearAnalyseur() {
+    this.state.nums = [null, null, null, null, null];
+    this.state.chance = null;
+    ['n1', 'n2', 'n3', 'n4', 'n5', 'chance'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    this.renderAnalyseur();
+  },
 
-  function generate() {
+  generate() {
+    const nbGrids = Number(document.getElementById('nbGrids').value);
     const newGrids = [];
-    for(let i=0; i<nbGrids; i++) {
-      const grid = generateCombo(history, data.retards, data.chanceRetards, settings);
+    for(let i = 0; i < nbGrids; i++) {
+      const grid = generateCombo(this.data.draws, this.data.retards, this.data.chanceRetards, this.state.settings);
       newGrids.push(grid);
     }
-    setGrids(newGrids);
-  }
+    this.state.generatedGrids = newGrids;
+    this.renderGenerateur();
+  },
 
-  function copyGrid(grid) {
+  renderGenerateur() {
+    const container = document.getElementById('generatedGrids');
+    if(this.state.generatedGrids.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+    container.style.display = 'block';
+    document.getElementById('gridsCount').textContent = this.state.generatedGrids.length;
+    document.getElementById('gridsSuffix').textContent = this.state.generatedGrids.length > 1 ? 's' : '';
+    document.getElementById('gridsSuffix2').textContent = this.state.generatedGrids.length > 1 ? 's' : '';
+
+    let gridsHtml = '';
+    this.state.generatedGrids.forEach((grid, i) => {
+      const sorted = [...grid.nums].sort((a,b)=>a-b);
+      const scoreColor = grid.score >= 30 ? COLORS.success : grid.score >= 25 ? '#00b894' : grid.score >= 20 ? COLORS.warning : COLORS.error;
+      const ballsHtml = sorted.map(n => `<span class="ball sm">${n}</span>`).join('') +
+                        ` <span style="color: ${COLORS.textLight}; margin: 0 4px;">+</span> ` +
+                        `<span class="ball sm chance">${grid.chance}</span>`;
+      gridsHtml += `
+        <div class="grid-item">
+          <div class="grid-numbers">${ballsHtml}</div>
+          <div>
+            <div class="grid-score" style="color: ${scoreColor}; margin-bottom: 8px;">
+              ${grid.score}/35 hypothèses validées (${Math.round(grid.score/35*100)}%)
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="app.copyGrid(${i});">📋 Copier</button>
+          </div>
+        </div>
+      `;
+    });
+    document.getElementById('gridsContainer').innerHTML = gridsHtml;
+  },
+
+  copyGrid(idx) {
+    const grid = this.state.generatedGrids[idx];
     const sorted = [...grid.nums].sort((a,b)=>a-b);
     const text = `${sorted.join(' - ')} + Chance ${grid.chance}`;
-    navigator.clipboard.writeText(text);
-    alert('Grille copiée !');
-  }
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Grille copiée !');
+    });
+  },
 
-  return (
-    <div style={{padding:'24px 0'}}>
-      <div className="rounded-xl p-6 mb-6 shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-        <h3 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{color:COLORS.textLight}}>
-          Paramètres de génération
-        </h3>
-        
-        <div className="space-y-4">
-          <label className="flex items-center gap-3">
-            <input type="checkbox" checked={settings.favorHot} onChange={e=>setSettings({...settings,favorHot:e.target.checked})}
-              className="w-4 h-4"/>
-            <span className="text-sm" style={{color:COLORS.text}}>Favoriser les numéros chauds (10 derniers tirages)</span>
-          </label>
-          
-          <label className="flex items-center gap-3">
-            <input type="checkbox" checked={settings.avoidCold} onChange={e=>setSettings({...settings,avoidCold:e.target.checked})}
-              className="w-4 h-4"/>
-            <span className="text-sm" style={{color:COLORS.text}}>Éviter les numéros froids (retard &gt; 15)</span>
-          </label>
-          
-          <div>
-            <label className="block text-sm font-semibold mb-2" style={{color:COLORS.text}}>
-              Hypothèses minimum à respecter : {settings.minHypo}/35
-            </label>
-            <input type="range" min="15" max="35" value={settings.minHypo}
-              onChange={e=>setSettings({...settings,minHypo:Number(e.target.value)})}
-              className="w-full" style={{accentColor:COLORS.primary}}/>
-            <div className="flex justify-between text-xs mt-1" style={{color:COLORS.textLight}}>
-              <span>15 (souple)</span>
-              <span>25 (équilibré)</span>
-              <span>35 (strict)</span>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-semibold mb-2" style={{color:COLORS.text}}>
-              Nombre de grilles à générer
-            </label>
-            <select value={nbGrids} onChange={e=>setNbGrids(Number(e.target.value))}
-              className="rounded-lg px-4 py-2 font-semibold shadow-sm"
-              style={{background:COLORS.card,border:`2px solid ${COLORS.border}`,color:COLORS.text}}>
-              {[3,5,10,15,20].map(n=><option key={n} value={n}>{n} grilles</option>)}
-            </select>
-          </div>
-          
-          <button onClick={generate}
-            className="w-full py-3 rounded-lg font-bold text-white shadow-md transition-all hover:opacity-90"
-            style={{background:`linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`}}>
-            🎲 Générer les grilles
-          </button>
+  renderHistorique() {
+    const shown = [...this.data.draws].reverse().slice(0, 30);
+    let html = '';
+    shown.forEach(draw => {
+      const sorted = [...draw.b].sort((a,b)=>a-b);
+      const ballsHtml = sorted.map(n => `<span class="ball sm">${n}</span>`).join('') +
+                        ` <span style="color: ${COLORS.textLight}; font-size: 12px;">+</span> ` +
+                        `<span class="ball sm chance">${draw.c}</span>`;
+      html += `
+        <div class="history-item">
+          <span class="history-date">${draw.d}</span>
+          <div class="history-numbers">${ballsHtml}</div>
         </div>
-      </div>
+      `;
+    });
+    document.getElementById('historyContainer').innerHTML = html;
+  },
 
-      {grids.length>0 && (
-        <div className="space-y-3">
-          <h3 className="font-bold text-sm uppercase tracking-wide mb-4" style={{color:COLORS.textLight}}>
-            {grids.length} grille{grids.length>1?'s':''} générée{grids.length>1?'s':''}
-          </h3>
-          {grids.map((grid,i)=>{
-            const sorted = [...grid.nums].sort((a,b)=>a-b);
-            const scoreColor = grid.score>=30?COLORS.success:grid.score>=25?'#00b894':grid.score>=20?COLORS.warning:COLORS.error;
-            return (
-              <div key={i} className="rounded-xl p-4 shadow-sm flex items-center justify-between gap-4" 
-                style={{background:COLORS.card,border:`2px solid ${COLORS.border}`}}>
-                <div className="flex-1">
-                  <div className="flex gap-2 mb-2 flex-wrap items-center">
-                    {sorted.map((n,j)=><Ball key={j} n={n} size="md"/>)}
-                    <span style={{color:COLORS.textLight,margin:'0 4px'}}>+</span>
-                    <ChanceBall n={grid.chance} size="md"/>
-                  </div>
-                  <div className="text-xs font-semibold" style={{color:scoreColor}}>
-                    {grid.score}/35 hypothèses validées ({Math.round(grid.score/35*100)}%)
-                  </div>
-                </div>
-                <button onClick={()=>copyGrid(grid)}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all hover:opacity-80"
-                  style={{background:COLORS.primary,color:'#fff'}}>
-                  📋 Copier
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+  renderStats() {
+    const retards = this.data.retards;
+    const freq = this.data.freq30;
 
-// ═══════════════════════════════════════════════════
-// TAB: HISTORIQUE
-// ═══════════════════════════════════════════════════
-function TabHistorique({ history }) {
-  const shown = history.slice().reverse().slice(0,30);
-  
-  return (
-    <div style={{padding:'24px 0'}}>
-      <h3 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{color:COLORS.textLight}}>
-        30 derniers tirages
-      </h3>
-      <div className="space-y-2">
-        {shown.map((draw,i)=>{
-          const sorted = [...draw.b].sort((a,b)=>a-b);
-          return (
-            <div key={i} className="rounded-xl p-4 shadow-sm flex items-center justify-between gap-4"
-              style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-              <span className="font-mono text-xs font-semibold" style={{color:COLORS.textLight,minWidth:'80px'}}>{draw.d}</span>
-              <div className="flex gap-2 flex-wrap flex-1">
-                {sorted.map((n,j)=><Ball key={j} n={n} size="sm"/>)}
-                <span style={{color:COLORS.textLight,fontSize:'12px'}}>+</span>
-                <ChanceBall n={draw.c} size="sm"/>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+    const numsArr = Array.from({length:49},(_,i)=>i+1);
+    const topRetards = numsArr.sort((a,b)=>(retards[b]||0)-(retards[a]||0)).slice(0,15);
+    const topHot = numsArr.sort((a,b)=>(freq[b]||0)-(freq[a]||0)).slice(0,15);
 
-// ═══════════════════════════════════════════════════
-// TAB: STATISTIQUES AVANCÉES (avec retards et KPIs)
-// ═══════════════════════════════════════════════════
-function TabStats({ data, history }) {
-  const retards = data.retards;
-  const chanceRetards = data.chanceRetards;
-  
-  // Compute KPIs sur 30 derniers
-  const last30 = history.slice(-30);
-  const sums30 = last30.map(d=>d.b.reduce((a,b)=>a+b,0));
-  const evens30 = last30.map(d=>d.b.filter(n=>n%2===0).length);
-  const finals30 = last30.map(d=>d.b.reduce((a,n)=>a+n%10,0));
-  
-  const avgSum = Math.round(sums30.reduce((a,b)=>a+b,0)/sums30.length*10)/10;
-  const avgEvens = Math.round(evens30.reduce((a,b)=>a+b,0)/evens30.length*10)/10;
-  const avgFinals = Math.round(finals30.reduce((a,b)=>a+b,0)/finals30.length*10)/10;
-  
-  // Alertes critiques
-  const CRITICAL_RETARD = 20;
-  const WARN_RETARD = 12;
-  const criticals = Object.entries(retards).filter(([,v])=>v>=CRITICAL_RETARD).sort((a,b)=>b[1]-a[1]);
-  const warnings = Object.entries(retards).filter(([,v])=>v>=WARN_RETARD&&v<CRITICAL_RETARD).sort((a,b)=>b[1]-a[1]);
-  const chanceCritical = Object.entries(chanceRetards).filter(([,v])=>v>=12).sort((a,b)=>b[1]-a[1]);
-  
-  // Top retards et hot
-  const numsArr = Array.from({length:49},(_,i)=>i+1);
-  const topRetards = numsArr.sort((a,b)=>(retards[b]||0)-(retards[a]||0)).slice(0,15);
-  const freq30 = data.freq30;
-  const topHot = numsArr.sort((a,b)=>(freq30[b]||0)-(freq30[a]||0)).slice(0,15);
-  
-  // Sparkline somme
-  const sparkMax = Math.max(...sums30);
-  const sparkMin = Math.min(...sums30);
-  
-  function Thermometer({label, value, min, max, norm, warn_lo, warn_hi, unit=''}) {
-    const pct = Math.min(100,Math.max(0,(value-min)/(max-min)*100));
-    const normPct = (norm-min)/(max-min)*100;
-    const isOk = value>=warn_lo&&value<=warn_hi;
-    const col = isOk?COLORS.success:COLORS.error;
-    return (
-      <div className="rounded-xl p-4 shadow-sm" style={{background:COLORS.card,border:`2px solid ${col}33`}}>
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-xs font-semibold" style={{color:COLORS.textLight}}>{label}</span>
-          <span className="font-mono font-bold" style={{color:col}}>{value}{unit}</span>
+    let hotHtml = '';
+    topHot.forEach(n => {
+      hotHtml += `
+        <div class="stat-item">
+          <span class="ball sm">${n}</span>
+          <span class="stat-count" style="color: ${COLORS.primary};">${freq[n]||0}×</span>
         </div>
-        <div className="relative rounded-full overflow-hidden" style={{height:'10px',background:COLORS.bg}}>
-          <div style={{width:`${normPct}%`,height:'100%',borderRight:`2px solid ${COLORS.textLight}`,position:'absolute',opacity:.5}}/>
-          <div style={{width:`${pct}%`,height:'100%',background:col,borderRadius:'9999px'}}/>
-        </div>
-        <div className="flex justify-between mt-1 text-xs" style={{color:COLORS.textLight}}>
-          <span>{min}</span><span>Norme: {norm}</span><span>{max}</span>
-        </div>
-        <p className="text-xs mt-2 font-semibold" style={{color:isOk?COLORS.success:COLORS.error}}>
-          {isOk ? '✓ Dans la plage normale' : `⚠ Hors plage [${warn_lo}–${warn_hi}]`}
-        </p>
-      </div>
-    );
-  }
-  
-  return (
-    <div style={{padding:'24px 0'}}>
-      {/* Alertes critiques */}
-      {(criticals.length>0||chanceCritical.length>0) && (
-        <div className="rounded-xl p-5 mb-6 shadow-md" style={{background:'#fff1f0',border:`2px solid ${COLORS.error}`}}>
-          <h3 className="font-bold mb-3 flex items-center gap-2" style={{color:COLORS.error}}>
-            🚨 ALERTES CRITIQUES
-          </h3>
-          {criticals.length>0 && (
-            <div className="mb-3">
-              <p className="text-xs mb-2 font-semibold" style={{color:COLORS.text}}>Numéros en retard critique (≥{CRITICAL_RETARD} tirages) :</p>
-              <div className="flex gap-2 flex-wrap">
-                {criticals.map(([n,r])=>(
-                  <div key={n} className="flex flex-col items-center rounded-lg p-2 shadow-sm" style={{background:COLORS.card,border:`2px solid ${COLORS.error}`}}>
-                    <Ball n={Number(n)} size="sm"/>
-                    <span className="text-xs font-bold mt-1" style={{color:COLORS.error}}>-{r}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {chanceCritical.length>0 && (
-            <div>
-              <p className="text-xs mb-2 font-semibold" style={{color:COLORS.text}}>Chance en retard critique :</p>
-              <div className="flex gap-2 flex-wrap">
-                {chanceCritical.map(([c,r])=>(
-                  <div key={c} className="flex flex-col items-center rounded-lg p-2 shadow-sm" style={{background:COLORS.card,border:`2px solid ${COLORS.accent}`}}>
-                    <ChanceBall n={Number(c)} size="sm"/>
-                    <span className="text-xs font-bold mt-1" style={{color:COLORS.accent}}>-{r}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* KPIs Thermomètres */}
-      <h3 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{color:COLORS.textLight}}>
-        📊 Dynamiques sur 30 tirages
-      </h3>
-      <div className="grid gap-4 mb-6" style={{gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))'}}>
-        <Thermometer label="Somme Moyenne" value={avgSum} min={70} max={180} norm={124.6} warn_lo={110} warn_hi={140}/>
-        <Thermometer label="Pairs Moyen" value={avgEvens} min={0} max={5} norm={2.5} warn_lo={2.0} warn_hi={3.0}/>
-        <Thermometer label="Somme Finales Moy." value={avgFinals} min={10} max={40} norm={22.8} warn_lo={18} warn_hi={28}/>
-      </div>
-      
-      {/* Sparkline somme */}
-      <div className="rounded-xl p-5 mb-6 shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-        <h4 className="font-bold mb-3 text-sm" style={{color:COLORS.text}}>Évolution Somme — 30 derniers tirages</h4>
-        <div className="flex items-end gap-1" style={{height:'80px'}}>
-          {sums30.map((s,i)=>{
-            const h = Math.round(((s-sparkMin)/(sparkMax-sparkMin||1))*70)+10;
-            const inRange = s>=95&&s<=155;
-            const col = inRange?COLORS.primary:COLORS.error;
-            const isLast = i===sums30.length-1;
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center justify-end group relative">
-                <div style={{height:`${h}px`,background:isLast?COLORS.accent:col,borderRadius:'2px 2px 0 0',width:'100%',opacity:.85}}/>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap px-2 py-1 rounded shadow-md"
-                  style={{background:COLORS.text,color:'#fff'}}>
-                  {s}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex justify-between text-xs mt-2" style={{color:COLORS.textLight}}>
-          <span>{last30[0]?.d}</span>
-          <span>Moy: {avgSum} | Norme: 124.6</span>
-          <span>{last30[last30.length-1]?.d}</span>
-        </div>
-      </div>
-      
-      {/* Top chauds/froids */}
-      <div className="grid gap-6 mb-6" style={{gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))'}}>
-        <div className="rounded-xl p-6 shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-          <h3 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{color:COLORS.textLight}}>
-            🔥 Top 15 Numéros Chauds (30 tirages)
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {topHot.map(n=>(
-              <div key={n} className="flex flex-col items-center rounded-lg p-2" style={{background:COLORS.bg}}>
-                <Ball n={n} size="sm"/>
-                <span className="text-xs font-bold mt-1" style={{color:COLORS.primary}}>{freq30[n]||0}×</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <div className="rounded-xl p-6 shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-          <h3 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{color:COLORS.textLight}}>
-            ❄️ Top 15 Numéros en Retard
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {topRetards.map(n=>{
-              const r = retards[n]||0;
-              const col = r>20?COLORS.error:r>10?COLORS.warning:COLORS.textLight;
-              return (
-                <div key={n} className="flex flex-col items-center rounded-lg p-2" style={{background:COLORS.bg}}>
-                  <Ball n={n} size="sm"/>
-                  <span className="text-xs font-bold mt-1" style={{color:col}}>-{r}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+      `;
+    });
+    document.getElementById('hotNumbers').innerHTML = hotHtml;
 
-// ═══════════════════════════════════════════════════
-// TAB: IMPORTER
-// ═══════════════════════════════════════════════════
-function TabImporter({ onImport }) {
-  const fileRef = useRef(null);
-  const [status, setStatus] = useState('');
-  
-  function handleFile(e) {
+    let coldHtml = '';
+    topRetards.forEach(n => {
+      const r = retards[n]||0;
+      const col = r>20?COLORS.error:r>10?COLORS.warning:COLORS.textLight;
+      coldHtml += `
+        <div class="stat-item">
+          <span class="ball sm">${n}</span>
+          <span class="stat-count" style="color: ${col};">-${r}</span>
+        </div>
+      `;
+    });
+    document.getElementById('coldNumbers').innerHTML = coldHtml;
+  },
+
+  handleCSVImport(e) {
     const file = e.target.files?.[0];
     if(!file) return;
-    
-    setStatus('Chargement...');
+
+    const statusEl = document.getElementById('importStatus');
+    statusEl.textContent = 'Chargement...';
+    statusEl.style.display = 'block';
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const text = ev.target?.result;
         if(typeof text !== 'string') throw new Error('Format invalide');
-        
+
         const lines = text.split('\n').filter(l=>l.trim());
         const newDraws = [];
-        
+
         for(let i=1; i<lines.length; i++) {
           const parts = lines[i].split(';');
-          if(parts.length<7) continue;
-          
+          if(parts.length<10) continue;
+
           const date = parts[2]?.trim();
           const b1=Number(parts[4]), b2=Number(parts[5]), b3=Number(parts[6]),
                 b4=Number(parts[7]), b5=Number(parts[8]);
           const c = Number(parts[9]);
-          
+
           if(!date || isNaN(b1) || isNaN(c)) continue;
-          
+
           newDraws.push({ d: date, b: [b1,b2,b3,b4,b5], c });
         }
-        
+
         if(newDraws.length===0) {
-          setStatus('❌ Aucun tirage valide trouvé');
+          statusEl.textContent = '❌ Aucun tirage valide trouvé';
+          statusEl.className = 'status-message status-error';
           return;
         }
-        
-        onImport(newDraws);
-        setStatus(`✅ ${newDraws.length} tirage(s) importé(s) avec succès !`);
-        
+
+        this.data.draws.push(...newDraws);
+        statusEl.textContent = `✅ ${newDraws.length} tirage(s) importé(s) avec succès !`;
+        statusEl.className = 'status-message status-success';
+        this.updateHeader();
+        this.renderHistorique();
+
       } catch(err) {
-        setStatus(`❌ Erreur : ${err.message}`);
+        statusEl.textContent = `❌ Erreur : ${err.message}`;
+        statusEl.className = 'status-message status-error';
       }
     };
     reader.readAsText(file);
   }
-  
-  return (
-    <div style={{padding:'24px 0'}}>
-      <div className="rounded-xl p-6 shadow-sm" style={{background:COLORS.card,border:`1px solid ${COLORS.border}`}}>
-        <h3 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{color:COLORS.textLight}}>
-          Importer un historique CSV
-        </h3>
-        
-        <div className="mb-4 p-4 rounded-lg text-sm" style={{background:COLORS.bg,color:COLORS.text}}>
-          <p className="font-semibold mb-2">Format attendu (CSV séparé par ';') :</p>
-          <code className="block text-xs p-2 rounded" style={{background:'#fff',border:`1px solid ${COLORS.border}`}}>
-            annee_numero_de_tirage;jour_de_tirage;date_de_tirage;date_de_forclusion;boule_1;boule_2;boule_3;boule_4;boule_5;numero_chance;...
-          </code>
-          <p className="mt-2 text-xs" style={{color:COLORS.textLight}}>
-            Les colonnes importantes : date_de_tirage (format JJ/MM/AAAA), boule_1 à boule_5, numero_chance
-          </p>
-        </div>
-        
-        <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} style={{display:'none'}}/>
-        
-        <button onClick={()=>fileRef.current?.click()}
-          className="w-full py-3 rounded-lg font-bold text-white shadow-md transition-all hover:opacity-90"
-          style={{background:`linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`}}>
-          📁 Choisir un fichier CSV
-        </button>
-        
-        {status && (
-          <div className="mt-4 p-3 rounded-lg text-sm font-semibold text-center"
-            style={{background:status.includes('✅')?'#d4edda':status.includes('❌')?'#f8d7da':'#fff3cd',
-              color:status.includes('✅')?'#155724':status.includes('❌')?'#721c24':'#856404',
-              border:`1px solid ${status.includes('✅')?'#c3e6cb':status.includes('❌')?'#f5c6cb':'#ffeaa7'}`}}>
-            {status}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+};
 
-// ═══════════════════════════════════════════════════
-// APP PRINCIPALE
-// ═══════════════════════════════════════════════════
-export default function LotoAnalyzer() {
-  const [tab, setTab] = useState('analyseur');
-  const [data, setData] = useState(LOTO_DATA_INIT);
-  
-  const history = data.draws;
-  const lastDraw = history[history.length-1];
-  const lastSorted = lastDraw ? [...lastDraw.b].sort((a,b)=>a-b) : [];
+// Initialize app
+document.addEventListener('DOMContentLoaded', () => {
+  app.init();
+});
+</script>
 
-  function handleImport(newDraws) {
-    setData(prev => ({
-      ...prev,
-      draws: [...prev.draws, ...newDraws]
-    }));
-  }
-
-  const tabs = [
-    { id:'analyseur', icon:'🎯', label:'Analyseur' },
-    { id:'hypotheses', icon:'📜', label:'Hypothèses' },
-    { id:'generateur', icon:'🎲', label:'Générateur' },
-    { id:'stats', icon:'📊', label:'Statistiques' },
-    { id:'historique', icon:'📋', label:'Historique' },
-    { id:'importer', icon:'📁', label:'Importer' },
-  ];
-
-  return (
-    <div style={{
-      minHeight:'100vh',
-      background:COLORS.bg,
-      color:COLORS.text,
-      fontFamily:"'Inter', 'Segoe UI', sans-serif",
-    }}>
-      {/* Header */}
-      <div style={{
-        background:`linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.secondary} 100%)`,
-        color:'#fff',
-        padding:'24px',
-        boxShadow:'0 2px 8px rgba(0,0,0,0.1)',
-      }}>
-        <div style={{maxWidth:'1000px',margin:'0 auto'}}>
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <span style={{fontSize:'28px'}}>🇫🇷</span>
-                <h1 style={{fontSize:'24px',fontWeight:900,letterSpacing:'-0.5px'}}>
-                  LOTO ANALYZER
-                </h1>
-                <span className="px-3 py-1 rounded-full text-xs font-bold" style={{background:'rgba(255,255,255,0.2)'}}>
-                  35 Hypothèses
-                </span>
-              </div>
-              <p style={{fontSize:'13px',opacity:0.9}}>
-                Analyse basée sur {data.totalDraws.toLocaleString()} tirages · Numéros 1–49 · Chance 1–10
-              </p>
-            </div>
-            {lastDraw && (
-              <div className="text-right">
-                <div className="text-xs mb-1 opacity-80">Dernier tirage</div>
-                <div className="text-xs font-mono mb-2 font-semibold">{lastDraw.d}</div>
-                <div className="flex gap-1.5 justify-end">
-                  {lastSorted.map((n,i)=><Ball key={i} n={n} size="sm"/>)}
-                  <span style={{margin:'0 3px',opacity:0.7}}>+</span>
-                  <ChanceBall n={lastDraw.c} size="sm"/>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div style={{background:COLORS.card,borderBottom:`1px solid ${COLORS.border}`,boxShadow:'0 1px 3px rgba(0,0,0,0.05)'}}>
-        <div style={{maxWidth:'1000px',margin:'0 auto',padding:'0 24px'}}>
-          <div className="flex overflow-x-auto">
-            {tabs.map(t=>(
-              <button key={t.id} onClick={()=>setTab(t.id)}
-                className="px-5 py-3 text-sm font-semibold transition-all whitespace-nowrap"
-                style={{
-                  color: tab===t.id ? COLORS.primary : COLORS.textLight,
-                  borderBottom: tab===t.id ? `3px solid ${COLORS.primary}` : '3px solid transparent',
-                  background:'transparent',
-                }}>
-                <span className="mr-1.5">{t.icon}</span>{t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={{maxWidth:'1000px',margin:'0 auto',padding:'0 24px 48px'}}>
-        {tab==='analyseur' && <TabAnalyseur history={history}/>}
-        {tab==='hypotheses' && <TabHypotheses/>}
-        {tab==='generateur' && <TabGenerateur history={history} data={data}/>}
-        {tab==='stats' && <TabStats data={data} history={history}/>}
-        {tab==='historique' && <TabHistorique history={history}/>}
-        {tab==='importer' && <TabImporter onImport={handleImport}/>}
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        borderTop:`1px solid ${COLORS.border}`,
-        padding:'20px 24px',
-        textAlign:'center',
-        color:COLORS.textLight,
-        fontSize:'12px',
-        background:COLORS.card,
-      }}>
-        Loto Analyzer · 35 Hypothèses · {data.totalDraws.toLocaleString()} tirages analysés · À titre informatif uniquement
-      </div>
-    </div>
-  );
-}
-   </script>
-   </body>
-   </html>
+</body>
+</html>
